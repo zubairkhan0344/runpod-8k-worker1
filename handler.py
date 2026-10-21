@@ -16,13 +16,14 @@ s3_client = boto3.client(
 )
 BUCKET_NAME = os.environ.get("R2_BUCKET_NAME")
 
+
 def upscale_video_to_8k(event):
     job_id = event["id"]
     job_input = event["input"]
-    
+
     input_video_url = job_input.get("video_url")
     target_fps = job_input.get("fps", 30)
-    
+
     if not input_video_url:
         return {"error": "Missing video_url in input payload."}
 
@@ -59,7 +60,7 @@ def upscale_video_to_8k(event):
             "-o", frames_out,
             "-n", "realesr-animevideov3",
             "-s", "4",
-            "-t", "512",  # 512px tile size prevents VRAM Out-Of-Memory errors
+            "-t", "512",
             "-f", "jpg"
         ], check=True)
 
@@ -85,7 +86,7 @@ def upscale_video_to_8k(event):
         presigned_url = s3_client.generate_presigned_url(
             "get_object",
             Params={"Bucket": BUCKET_NAME, "Key": output_key},
-            ExpiresIn=86400  # Valid for 24 hours
+            ExpiresIn=86400
         )
 
         return {
@@ -95,7 +96,7 @@ def upscale_video_to_8k(event):
         }
 
     finally:
-        # Clean up /tmp disk space so warm workers don't fill up container storage
         shutil.rmtree(work_dir, ignore_errors=True)
+
 
 runpod.serverless.start({"handler": upscale_video_to_8k})
